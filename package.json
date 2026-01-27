@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "setup": "cp backend/.env.template backend/.env && cp storefront/.env.template storefront/.env.local && pnpm --filter backend run seed",
+        "setup": "./scripts/setup.sh",
         "dev": "pnpm --parallel dev"
     },
     "devDependencies": {

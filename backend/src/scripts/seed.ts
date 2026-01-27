@@ -292,20 +292,29 @@ export default async function seedDemoData({ container }: ExecArgs) {
   logger.info("Finished seeding stock location data.");
 
   logger.info("Seeding publishable API key data...");
-  const { result: publishableApiKeyResult } = await createApiKeysWorkflow(
-    container
-  ).run({
-    input: {
-      api_keys: [
-        {
-          title: "Webshop",
-          type: "publishable",
-          created_by: "",
-        },
-      ],
-    },
+  const apiKeyModuleService = container.resolve(Modules.API_KEY);
+
+  let [publishableApiKey] = await apiKeyModuleService.listApiKeys({
+    title: "Webshop",
   });
-  const publishableApiKey = publishableApiKeyResult[0];
+
+  if (!publishableApiKey) {
+    const { result: publishableApiKeyResult } = await createApiKeysWorkflow(
+      container
+    ).run({
+      input: {
+        api_keys: [
+          {
+            title: "Webshop",
+            type: "publishable",
+            created_by: "system",
+          } as any,
+        ],
+      },
+    });
+    publishableApiKey = publishableApiKeyResult[0];
+  }
+
   await linkSalesChannelsToApiKeyWorkflow(container).run({
     input: {
       id: publishableApiKey.id,
