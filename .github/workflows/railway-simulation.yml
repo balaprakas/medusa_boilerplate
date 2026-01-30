@@ -1,0 +1,90 @@
+name: Railway Simulation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ staging ]
+
+jobs:
+  simulate-railway:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: medusa-v2
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6380:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: |
+          pnpm config set shamefully-hoist true
+          pnpm install --shamefully-hoist
+
+      - name: Generate Env Files
+        run: |
+          cp backend/.env.template backend/.env
+          cp storefront/.env.template storefront/.env.local
+          
+          # Generate random Publishable Key (32 bytes = 64 hex chars)
+          PK_KEY="pk_$(openssl rand -hex 32)"
+          echo "Generated PK: $PK_KEY"
+
+          # Also export to GITHUB_ENV for use in subsequent steps
+          echo "MEDUSA_PUBLISHABLE_KEY=$PK_KEY" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=$PK_KEY" >> $GITHUB_ENV
+
+      - name: Build Backend
+        working-directory: backend
+        run: pnpm run build
+
+      - name: Start Backend
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5435/medusa-v2
+          REDIS_URL: redis://localhost:6380
+          MEDUSA_ADMIN_EMAIL: admin@medusa-test.com
+          MEDUSA_ADMIN_PASSWORD: supersecret
+          JWT_SECRET: supersecret
+          COOKIE_SECRET: supersecret
+          STORE_CORS: http://localhost:8000
+          ADMIN_CORS: http://localhost:9000
+          AUTH_CORS: http://localhost:9000
+          PORT: 9000
+          NODE_ENV: production
+          MEDUSA_PUBLISHABLE_KEY: ${{ env.MEDUSA_PUBLISHABLE_KEY }}
+        run: |
+          pnpm run start &
+
+      - name: Build Storefront (Simulating Railway)
+        working-directory: storefront
+        env:
+          NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+          NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
+          MAX_RETRIES: 10
+        run: |
+          # This runs check-backend.sh internally, then next build
+          pnpm run build:railway

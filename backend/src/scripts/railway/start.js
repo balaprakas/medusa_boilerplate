@@ -1,8 +1,9 @@
-const { execSync } = require('child_process');
-const { Client } = require('pg');
-const path = require('path');
+const { execSync } = require("child_process");
+const { Client } = require("pg");
+const path = require("path");
+const fs = require("fs");
 
-const MEDUSA_SERVER_PATH = path.join(process.cwd(), '.medusa/server');
+const MEDUSA_SERVER_PATH = path.join(process.cwd(), ".medusa/server");
 
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
@@ -24,9 +25,44 @@ const checkIfSeeded = async () => {
   }
 };
 
+const ensurePublishableKey = async () => {
+  const publishableKey = process.env.MEDUSA_PUBLISHABLE_KEY;
+  if (!publishableKey) return;
+
+  const updateClient = new Client({
+    connectionString: process.env.DATABASE_URL,
+  });
+
+  try {
+    await updateClient.connect();
+    console.log("Ensuring publishable key matches MEDUSA_PUBLISHABLE_KEY...");
+    // Update the first publishable key found, or one with title Webshop
+    const res = await updateClient.query(
+      "UPDATE api_key SET token = $1 WHERE title = $2 OR (type = 'publishable' AND token != $1);",
+      [publishableKey, "Webshop"],
+    );
+    if (res.rowCount > 0) {
+      console.log(`Successfully updated ${res.rowCount} publishable key(s).`);
+    } else {
+      console.log("No publishable keys needed updating.");
+    }
+  } catch (error) {
+    console.error("Failed to ensure publishable key:", error);
+  } finally {
+    await updateClient.end();
+  }
+};
+
 const start = async () => {
   console.log("Starting Railway initialization...");
-  
+
+  if (!fs.existsSync(MEDUSA_SERVER_PATH)) {
+    console.error(
+      `Error: ${MEDUSA_SERVER_PATH} does not exist. Please run 'pnpm run build' first.`,
+    );
+    process.exit(1);
+  }
+
   if (process.env.MEDUSA_WORKER_MODE === "worker") {
     console.log("Running in worker mode, skipping database seeding.");
     return;
@@ -34,7 +70,10 @@ const start = async () => {
 
   try {
     console.log("Running migrations...");
-    execSync("medusa db:migrate", { cwd: MEDUSA_SERVER_PATH, stdio: "inherit" });
+    execSync("medusa db:migrate", {
+      cwd: MEDUSA_SERVER_PATH,
+      stdio: "inherit",
+    });
   } catch (error) {
     console.error("Failed to run migrations:", error);
     process.exit(1);
@@ -45,8 +84,11 @@ const start = async () => {
     console.log("Database is not seeded. Seeding now...");
     try {
       console.log("Running seed script...");
-      execSync("npm run seed", { stdio: "inherit" });
-  
+      execSync("medusa exec ./src/scripts/seed.js", {
+        cwd: MEDUSA_SERVER_PATH,
+        stdio: "inherit",
+      });
+
       const adminEmail = process.env.MEDUSA_ADMIN_EMAIL;
       const adminPassword = process.env.MEDUSA_ADMIN_PASSWORD;
       if (adminEmail && adminPassword) {
@@ -56,7 +98,7 @@ const start = async () => {
           stdio: "inherit",
         });
       }
-  
+
       console.log("Database seeded and admin user created successfully.");
     } catch (error) {
       console.error("Failed to seed database or create admin user:", error);
@@ -65,6 +107,8 @@ const start = async () => {
   } else {
     console.log("Database is already seeded. Skipping seeding.");
   }
+
+  await ensurePublishableKey();
 };
 
 start();

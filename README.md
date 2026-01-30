@@ -54,12 +54,13 @@ Railway:
 
 3. **Environment Setup & Seed:**
 
-   Run the setup script to copy environment files and seed the database:
+   Run the automated setup script to copy environment files, generate a compatible publishable key, and seed the database:
 
    ```bash
    pnpm setup
-   # Note: You may need to update .env files with your specific keys
    ```
+
+   > **Note:** The setup script appends a unique `MEDUSA_PUBLISHABLE_KEY` to both `backend/.env` and `storefront/.env.local` to ensure they are synchronized for local development.
 
 ### Development
 
