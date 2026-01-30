@@ -27,7 +27,9 @@
             "package-lock.json",
             "pnpm-lock.yaml",
             "yarn.lock",
-            ".vscode"
+            ".vscode",
+            ".yarnrc.yml",
+            ".yarn"
         ],
         "postSync": {
             "package.json": {
@@ -103,7 +105,8 @@
             ".yarn",
             "yarn.lock",
             "check-env-variables.js",
-            ".github"
+            ".github",
+            ".yarnrc.yml"
         ],
         "postSync": {
             "package.json": {
@@ -112,6 +115,9 @@
                     "name": "storefront",
                     "scripts": {
                         "build:railway": "sh ./check-backend.sh && next build"
+                    },
+                    "dependencies": {
+                        "@medusajs/ui-preset": "latest"
                     },
                     "packageManager": "pnpm@10.24.0"
                 }

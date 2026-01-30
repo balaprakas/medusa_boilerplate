@@ -89,7 +89,6 @@ jobs:
           NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
           MAX_RETRIES: 10
         run: |
-          # This runs check-backend.sh internally, then next build
           pnpm run build:railway
 
       - name: Show Backend Logs on Failure

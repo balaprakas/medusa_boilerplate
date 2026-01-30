@@ -287,6 +287,9 @@ merge_package_json() {
                 "scripts": (.[0].scripts * {
                     "build:railway": "sh ./check-backend.sh && next build"
                 }),
+                "dependencies": (.[0].dependencies * {
+                    "@medusajs/ui-preset": "latest"
+                }),
                 "packageManager": "pnpm@10.24.0"
             }
         ' "$upstream_pkg" > "$target_pkg.tmp" && mv "$target_pkg.tmp" "$target_pkg"
@@ -301,6 +304,12 @@ append_env_template() {
     
     [ ! -f "$env_file" ] && return
     
+    # Check if Railway variables are already present
+    if grep -q "# Railway-specific" "$env_file"; then
+        log_info "    Skipping appending Railway vars to .env.template (already present)"
+        return
+    fi
+    
     if [ "$component" = "backend" ]; then
         cat >> "$env_file" << 'EOF'
 
@@ -308,27 +317,6 @@ append_env_template() {
 BACKEND_URL=http://localhost:9000
 MEDUSA_WORKER_MODE=shared
 SHOULD_DISABLE_ADMIN=false
-
-# S3 Storage (optional)
-AWS_DEFAULT_REGION=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_S3_BUCKET_NAME=
-AWS_ENDPOINT_URL=
-AWS_S3_FILE_URL=
-
-# Stripe (optional)
-STRIPE_API_KEY=
-STRIPE_WEBHOOK_SECRET=
-
-# Resend (optional)
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
-
-# Admin credentials for seeding
-MEDUSA_ADMIN_EMAIL=
-MEDUSA_ADMIN_PASSWORD=
-MEDUSA_PUBLISHABLE_KEY=
 EOF
     else
         cat >> "$env_file" << 'EOF'
@@ -378,9 +366,19 @@ main() {
     [ "$SYNC_BACKEND" = true ] && sync_component "backend"
     [ "$SYNC_STOREFRONT" = true ] && sync_component "storefront"
     
+    update_lockfile
+    
     cleanup
     create_pr
     show_summary
+}
+
+update_lockfile() {
+    if [ "$DRY_RUN" = false ]; then
+        log_info "Updating lockfile..."
+        pnpm install --no-frozen-lockfile --ignore-scripts || log_warning "Failed to update lockfile. Please run 'pnpm install' manually."
+        log_success "Lockfile updated"
+    fi
 }
 
 main
