@@ -287,9 +287,6 @@ merge_package_json() {
                 "scripts": (.[0].scripts * {
                     "build:railway": "sh ./check-backend.sh && next build"
                 }),
-                "dependencies": (.[0].dependencies * {
-                    "@medusajs/ui-preset": "latest"
-                }),
                 "packageManager": "pnpm@10.24.0"
             }
         ' "$upstream_pkg" > "$target_pkg.tmp" && mv "$target_pkg.tmp" "$target_pkg"

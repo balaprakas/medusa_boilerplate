@@ -116,9 +116,6 @@
                     "scripts": {
                         "build:railway": "sh ./check-backend.sh && next build"
                     },
-                    "dependencies": {
-                        "@medusajs/ui-preset": "latest"
-                    },
                     "packageManager": "pnpm@10.24.0"
                 }
             },

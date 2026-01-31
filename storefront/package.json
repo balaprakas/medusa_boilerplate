@@ -32,8 +32,7 @@
     "react-dom": "19.0.4",
     "server-only": "^0.0.1",
     "tailwindcss-radix": "^2.8.0",
-    "webpack": "^5",
-    "@medusajs/ui-preset": "latest"
+    "webpack": "^5"
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",
