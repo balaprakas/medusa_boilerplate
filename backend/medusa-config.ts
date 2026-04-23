@@ -14,7 +14,6 @@ import {
   STRIPE_API_KEY,
   STRIPE_WEBHOOK_SECRET,
   WORKER_MODE,
-
   AWS_DEFAULT_REGION,
   AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY,
@@ -22,9 +21,7 @@ import {
   AWS_ENDPOINT_URL,
   AWS_S3_FILE_URL
 } from './src/lib/constants'
-
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
-
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: DATABASE_URL,
@@ -42,6 +39,11 @@ module.exports = defineConfig({
   admin: {
     backendUrl: BACKEND_URL,
     disable: SHOULD_DISABLE_ADMIN,
+    vite: () => ({
+      build: {
+        target: 'esnext',
+      },
+    }),
   },
   modules: [
     // File storage module
